@@ -160,7 +160,27 @@ static void key_press(DmCore *core, XKeyEvent *event) {
     }
 
     if (length > 0 && !(event->state & ControlMask)) {
-        dm_form_type(core, buffer[0]);
+        int available;
+        if (core->focus == DM_FOCUS_USERNAME) {
+            available = DM_MAX_USERNAME - 1 - core->username_length;
+        } else if (core->focus == DM_FOCUS_PASSWORD) {
+            available = DM_MAX_PASSWORD - 1 - core->password_length;
+        } else {
+            return;
+        }
+        if (length > available) {
+            return;
+        }
+        if (core->focus == DM_FOCUS_USERNAME) {
+            for (int i = 0; i < length; i++) {
+                if ((unsigned char)buffer[i] >= 0x80) {
+                    return;
+                }
+            }
+        }
+        for (int i = 0; i < length; i++) {
+            dm_form_type(core, buffer[i]);
+        }
     }
 }
 

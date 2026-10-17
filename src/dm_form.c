@@ -37,9 +37,23 @@ void dm_form_type(DmCore *core, char c) {
 
 void dm_form_backspace(DmCore *core) {
     if (core->focus == DM_FOCUS_USERNAME) {
-        if (core->username_length > 0) core->username[--core->username_length] = '\0';
+        if (core->username_length > 0) {
+            do {
+                core->username_length--;
+            } while (core->username_length > 0 &&
+                     ((unsigned char)core->username[core->username_length] &
+                      0xc0) == 0x80);
+            core->username[core->username_length] = '\0';
+        }
     } else if (core->focus == DM_FOCUS_PASSWORD) {
-        if (core->password_length > 0) core->password[--core->password_length] = '\0';
+        if (core->password_length > 0) {
+            do {
+                core->password_length--;
+            } while (core->password_length > 0 &&
+                     ((unsigned char)core->password[core->password_length] &
+                      0xc0) == 0x80);
+            core->password[core->password_length] = '\0';
+        }
     } else {
         return;
     }

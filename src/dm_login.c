@@ -238,9 +238,12 @@ static void draw_field(DmCore *core, DmField field, const char *label,
     }
     if (secret) {
         char masked[DM_MAX_PASSWORD];
-        int count = length;
-        if (count > (int)sizeof(masked) - 1) count = (int)sizeof(masked) - 1;
-        memset(masked, '*', (size_t)count);
+        int count = 0;
+        for (int i = 0; i < length && count < (int)sizeof(masked) - 1; i++) {
+            if (((unsigned char)value[i] & 0xc0) != 0x80) {
+                masked[count++] = '*';
+            }
+        }
         masked[count] = '\0';
         dm_draw_text(core, value_x, baseline, masked, s->font_field, s->text);
         return;
