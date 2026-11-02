@@ -1,15 +1,13 @@
 /*
  * dm_config.h — the settings the login screen is built from.
  *
- * GnuChanDM is configured by a script and not by a file of key = value pairs,
- * the same way GnuChanWM and GnuChanTerm are. The script is Python — or rather
- * the part of Python a person writes to describe a login screen — and this
- * header is the shape of what reading it produces: the small, fixed set of
- * things a greeter can be asked for.
+ * GnuChanDM is configured by a plain Key = value file. Older static call-style
+ * files are parsed without execution for compatibility. This header is the
+ * shape of the values a greeter can be asked for.
  *
  * --- the order, and why it is the whole point ---
  *
- *     dm_config_load_default()   the script, read into plain data
+ *     dm_config_load_default()   the settings file, read into plain data
  *     dm_style_load(..., config) the palette, the fonts and the sizes from it
  *     dm_core_init()             the window, sized and coloured by that style
  *
@@ -138,9 +136,9 @@ void dm_config_defaults(DmConfig *config);
 /* Where the script is looked for, FIRST PLACE THAT HAS ONE WINNING:
 
      $GCL_DM_CONFIG                         a file named outright
-     $XDG_CONFIG_HOME/GnuChanDM/GnuChanDM.py
-     ~/.config/GnuChanDM/GnuChanDM.py
-     GnuChanDM_config/GnuChanDM.py          the copy the source tree ships
+     $XDG_CONFIG_HOME/GnuChanDM/GnuChanDM.conf
+     ~/.config/GnuChanDM/GnuChanDM.conf
+     GnuChanDM_config/GnuChanDM.conf       the copy the source tree ships
 
    The user's own ~/.config comes first of the fixed places, which is where the
    installer writes and where a login screen's settings belong. The tree's copy

@@ -143,6 +143,12 @@ char *dm_config_path(char *buffer, unsigned int size) {
     char candidate[DM_CONFIG_TEXT_LENGTH * 2];
     const char *base = getenv("XDG_CONFIG_HOME");
     if (base != NULL && base[0] == '/') {
+        snprintf(candidate, sizeof(candidate), "%s/GnuChanDM/GnuChanDM.conf",
+                 base);
+        snprintf(buffer, size, "%s", candidate);
+        if (path_is_readable(candidate)) {
+            return buffer;
+        }
         snprintf(candidate, sizeof(candidate), "%s/GnuChanDM/GnuChanDM.py",
                  base);
         if (path_is_readable(candidate)) {
@@ -158,6 +164,12 @@ char *dm_config_path(char *buffer, unsigned int size) {
     const char *home = getenv("HOME");
     if (home != NULL && home[0] != '\0') {
         snprintf(candidate, sizeof(candidate),
+                 "%s/.config/GnuChanDM/GnuChanDM.conf", home);
+        snprintf(buffer, size, "%s", candidate);
+        if (path_is_readable(candidate)) {
+            return buffer;
+        }
+        snprintf(candidate, sizeof(candidate),
                  "%s/.config/GnuChanDM/GnuChanDM.py", home);
         if (path_is_readable(candidate)) {
             snprintf(buffer, size, "%s", candidate);
@@ -170,6 +182,8 @@ char *dm_config_path(char *buffer, unsigned int size) {
        second spelling is the path from the repository root, so starting the
        greeter from the top of the tree finds it as well. */
     static const char *TREE_PATHS[] = {
+        "GnuChanDM_config/GnuChanDM.conf",
+        "gnuchan_softwares/gcl_DM/GnuChanDM_config/GnuChanDM.conf",
         "GnuChanDM_config/GnuChanDM.py",
         "gnuchan_softwares/gcl_DM/GnuChanDM_config/GnuChanDM.py",
     };
@@ -384,6 +398,16 @@ static void read_named_setting(DmConfig *config, const char *name,
    left alone — a script may hold a note to itself, and a name given a value
    this greeter has no use for is not a mistake. */
 static void read_statement(DmConfig *config, const DmStatement *statement) {
+    /* A flat .conf line is the same named value without a call wrapper. */
+    if (statement->kind == DM_STMT_ASSIGN &&
+        strchr(statement->target, '.') == NULL) {
+        if (strcmp(statement->target, "Version") == 0) {
+            return;
+        }
+        read_named_setting(config, statement->target, &statement->value);
+        return;
+    }
+
     /* gcl_DM.call(Name=value, ...) */
     if (statement->kind == DM_STMT_CALL) {
         if (strcmp(statement->target, CONFIG_OBJECT ".call") != 0) {

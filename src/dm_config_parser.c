@@ -1,5 +1,5 @@
 /*
- * dm_config_parser.c — read the settings script into statements.
+ * dm_config_parser.c — read plain settings lines into statements.
  *
  * The tokeniser is the whole of the difficulty, and it is small on purpose. It
  * has to know two things Python knows and a naive read would get wrong:
@@ -8,20 +8,18 @@
  *     as "#c77dff" survives;
  *   - whitespace — newlines included — separates tokens and nothing more.
  *
- * Everything after that is a recursive descent over the tokens. A statement is
- * a name, then either '=' and a value or '(' and a list of arguments. A value
- * may itself be a call or a list.
+ * The current format is one `Name = value` per line. The narrow parser also
+ * accepts the former static call/assignment syntax so existing user files can
+ * be read during migration. No input is interpreted as Python or executed.
  *
  *     gcl_DM.call(Accent="#c77dff")
  *     gcl_DM.margin = 16
  *
- * Anything else — an `if`, a `for`, a function definition — is rejected: a
- * script that computes its own login screen cannot be known without running
- * it.
+ * Anything outside this value grammar — an `if`, a `for`, a function
+ * definition, or an expression — is rejected.
  *
- * This is the same grammar GnuChanWM and GnuChanTerm read their scripts with.
- * It is not shared code: the programs install separately and none of them may
- * depend on another being present.
+ * This parser is local to GnuChanDM, which installs independently of the
+ * other programs.
  */
 #define _POSIX_C_SOURCE 200809L
 

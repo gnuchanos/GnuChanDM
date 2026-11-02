@@ -101,9 +101,9 @@ HEADERS = ("dm_module.h", "dm_config.h", "dm_config_parser.h",
 # Without this step the greeter runs on the palette compiled into dm_style.c,
 # which is the same colours but not the ones the shipped file describes, and
 # an edit to that file would do nothing because nothing would be reading it.
-CONFIG_SOURCE = ROOT / "GnuChanDM_config" / "GnuChanDM.py"
+CONFIG_SOURCE = ROOT / "GnuChanDM_config" / "GnuChanDM.conf"
 CONFIG_DIR_NAME = "GnuChanDM"
-CONFIG_FILE_NAME = "GnuChanDM.py"
+CONFIG_FILE_NAME = "GnuChanDM.conf"
 
 ELEVATED_VARIABLE = "GNUCHANDM_ELEVATED"
 
@@ -395,6 +395,17 @@ exec {BIN_DIR / PROGRAM}
 
 
 def service_text() -> str:
+    user = invoking_user()
+    home = (user[0] if user else
+            Path(os.environ.get("HOME") or Path.home()))
+    config_directory = user_config_directory(home)
+    config_path = config_directory / CONFIG_FILE_NAME
+    legacy_path = config_directory / "GnuChanDM.py"
+    if not config_path.is_file() and legacy_path.is_file():
+        config_path = legacy_path
+    escaped_path = str(config_path).replace("%", "%%")
+    escaped_path = escaped_path.replace("\\", "\\\\").replace('"', '\\"')
+
     return f"""\
 [Unit]
 Description=GnuChanOS Display Manager
@@ -416,6 +427,7 @@ StartLimitBurst=3
 
 [Service]
 Type=simple
+Environment="GCL_DM_CONFIG={escaped_path}"
 ExecStart={LAUNCHER}
 Restart=on-failure
 RestartSec=2
@@ -695,10 +707,17 @@ def invoking_user() -> tuple:
         return None
 
 
+def user_config_directory(home: Path) -> Path:
+    """Return the same absolute XDG config directory used by the greeter."""
+    xdg = os.environ.get("XDG_CONFIG_HOME")
+    base = Path(xdg) if xdg and Path(xdg).is_absolute() else home / ".config"
+    return base / CONFIG_DIR_NAME
+
+
 def install_config() -> None:
     """Put the settings script where the greeter will read it.
 
-      ~/.config/GnuChanDM/GnuChanDM.py
+      ~/.config/GnuChanDM/GnuChanDM.conf
 
     dm_config_path() looks there, so a machine that never had a settings file
     gets the shipped one written exactly where the greeter reads. Without this
@@ -742,16 +761,18 @@ def install_config() -> None:
         home = Path(os.environ.get("HOME") or Path.home())
         uid = gid = None
 
-    directory = home / ".config" / CONFIG_DIR_NAME
+    directory = user_config_directory(home)
     target = directory / CONFIG_FILE_NAME
 
-    directory.mkdir(parents=True, exist_ok=True)
-
-    # The old script is taken out before the new one is put in place, so the
-    # result is the shipped file and nothing of what was there before.
+    legacy = directory / "GnuChanDM.py"
     if target.exists():
-        target.unlink()
-        detail(f"removed the old {target}")
+        detail(f"kept existing settings {target}")
+        return
+    if legacy.exists():
+        detail(f"kept legacy settings {legacy}; the program reads it safely")
+        return
+
+    directory.mkdir(parents=True, exist_ok=True)
 
     shutil.copyfile(CONFIG_SOURCE, target)
 
@@ -779,7 +800,7 @@ def uninstall() -> None:
     # The settings script is left behind on purpose: it is the user's own
     # colours, and an uninstall that took them away would undo an edit the
     # person made.
-    note(f"The settings script under ~/.config/{CONFIG_DIR_NAME}/ was left "
+    note(f"The settings under ~/.config/{CONFIG_DIR_NAME}/ were left "
          f"alone.")
 
 

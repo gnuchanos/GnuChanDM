@@ -17,7 +17,13 @@ re-runs itself through sudo. It writes several files: the binary
 starts X and puts the greeter on it, an xgreeter entry, an xsession entry, and a
 systemd unit `/etc/systemd/system/gnuchandm.service`. It then stops, disables and
 masks any rival display manager and enables itself as `display-manager.service`,
-so it starts at boot. The settings script goes under `~/.config/GnuChanDM/`.
+so it starts at boot. The settings file `GnuChanDM.conf` goes under
+`$XDG_CONFIG_HOME/GnuChanDM/` when that variable is absolute, or
+`~/.config/GnuChanDM/` otherwise. It uses plain `Key = value` lines, like
+GnuChanSettings' `system.conf`. Existing `GnuChanDM.py` settings are read by a
+restricted static parser when no `.conf` exists; they are never executed.
+The installed systemd service points `GCL_DM_CONFIG` at that same user file,
+so the root-run greeter reads the settings GnuChanSettings edits.
 
 The makefile takes an action as its first argument: `install` (the default),
 `build` and `uninstall`.
